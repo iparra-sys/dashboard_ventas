@@ -1,0 +1,41 @@
+# Entorno virtual
+venv/
+.env/
+
+# Archivos de caché de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.log
+
+# Configuración local
+*.db
+instance/
+*.sqlite3
+*.sqlite
+
+# Archivos temporales o del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración de VSCode / PyCharm
+.vscode/
+.idea/
+
+# Archivos de entorno de Flask
+.env.*
+*.env
+
+# Archivos de prueba o datos temporales
+test/
+tmp/
+*.bak
+
+# Archivos de conexión o claves API (si los tuvieras)
+config_local.py
+
+# Carpetas de exportación o screenshots
+screenshots/
+uploads/

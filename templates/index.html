@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Dashboard de Ventas</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .chart-container {
+            width: 80%;
+            margin: 40px auto;
+        }
+        .table-container {
+            margin-top: 40px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📊 Dashboard de Ventas</h1>
+
+    <!-- 📈 Gráfico -->
+    <div class="chart-container">
+        <canvas id="ventasChart"></canvas>
+    </div>
+
+    <!-- 💰 Gráfico de Ventas Totales -->
+    <div class="chart-container">
+        <canvas id="totalesChart"></canvas>
+    </div>
+
+    <!-- 🥧 Gráfico circular: Ventas por Categoría -->
+    <div class="chart-container">
+        <canvas id="categoriaChart"></canvas>
+    </div>
+
+
+    <!-- 📋 Tabla -->
+    <div class="container table-container">
+        <table class="table table-striped table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unitario</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for venta in ventas %}
+                <tr>
+                    <td>{{ venta.id }}</td>
+                    <td>{{ venta.producto }}</td>
+                    <td>{{ venta.categoria }}</td>
+                    <td>{{ venta.cantidad }}</td>
+                    <td>{{ venta.precio_unitario }}</td>
+                    <td>{{ venta.fecha }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+<!-- Script de Chart.js -->
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Plugin para mostrar porcentajes -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+<script>
+    // 📊 Obtenemos los datos desde Flask (convertidos a JSON válidos)
+    const labelsVentas = {{ ventas | map(attribute='producto') | list | tojson }};
+    const cantidadesVentas = {{ ventas | map(attribute='cantidad') | list | tojson }};
+
+    // 📈 Configuración del gráfico
+    const ctx = document.getElementById('ventasChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labelsVentas,
+            datasets: [{
+                label: 'Cantidad Vendida',
+                data: cantidadesVentas,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                title: {
+                    display: true,
+                    text: 'Ventas por Producto'
+                }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+     // 💰 Calcular ventas totales (cantidad × precio_unitario)
+    const preciosUnitarios = {{ ventas | map(attribute='precio_unitario') | list | tojson }};
+    const ventasTotales = cantidadesVentas.map((cantidad, i) => cantidad * preciosUnitarios[i]);
+
+    // 🧾 Gráfico de ventas totales
+    const ctx2 = document.getElementById('totalesChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: labelsVentas,
+            datasets: [{
+                label: 'Ventas Totales ($)',
+                data: ventasTotales,
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                title: {
+                    display: true,
+                    text: 'Ventas Totales por Producto ($)'
+                }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+
+        // 🥧 Agrupar ventas totales por categoría
+    const categorias = {{ ventas | map(attribute='categoria') | list | tojson }};
+    const ventasPorCategoria = {};
+
+    categorias.forEach((cat, i) => {
+        if (!ventasPorCategoria[cat]) {
+            ventasPorCategoria[cat] = 0;
+        }
+        ventasPorCategoria[cat] += ventasTotales[i];
+    });
+
+    // Convertir a listas para Chart.js
+    const labelsCategorias = Object.keys(ventasPorCategoria);
+    const datosCategorias = Object.values(ventasPorCategoria);
+
+    // 🥧 Crear gráfico circular con porcentajes
+    const ctx3 = document.getElementById('categoriaChart').getContext('2d');
+    new Chart(ctx3, {
+        type: 'pie',
+        data: {
+            labels: labelsCategorias,
+            datasets: [{
+                label: 'Participación por Categoría',
+                data: datosCategorias,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.6)',
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 206, 86, 0.6)',
+                    'rgba(75, 192, 192, 0.6)',
+                    'rgba(153, 102, 255, 0.6)'
+                ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        plugins: {
+            legend: { position: 'right' },
+            title: {
+                display: true,
+                text: '🥧 Distribución de Ventas por Categoría'
+            },
+            datalabels: {
+                color: '#fff',
+                font: {
+                    weight: 'bold',
+                    size: 14
+                },
+                formatter: (value, ctx) => {
+                    let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                    let percentage = ((value * 100) / sum).toFixed(1) + "%";
+                    return percentage;
+                }
+            }
+        }
+    },
+    plugins: [ChartDataLabels] // 👈 Activamos el plugin
+});
+
+
+
+
+</script>
+
+</body>
+</html>
